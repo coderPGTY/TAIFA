@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace ExampleLib;
+namespace SharkSharp;
 
 public static class FileUtil
 {

@@ -1,8 +1,8 @@
-﻿using ExampleLib.UnitTests.Helpers;
+﻿using SharkSharp.UnitTests.Helpers;
 
 using Xunit;
 
-namespace ExampleLib.UnitTests;
+namespace SharkSharp.UnitTests;
 
 public class FileUtilTests
 {

@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace ExampleLib.UnitTests;
+namespace SharkSharp.UnitTests;
 
 public class TextUtilTest
 {

@@ -1,8 +1,8 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/ExampleLib/ExampleLib.csproj" />
+    <Project Path="src/SharkSharp/SharkSharp.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/ExampleLib.UnitTests/ExampleLib.UnitTests.csproj" />
+    <Project Path="tests/SharkSharp.UnitTests/SharkSharp.UnitTests.csproj" />
   </Folder>
 </Solution>
