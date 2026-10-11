@@ -81,7 +81,8 @@ public partial class Lexer
         {
             char c = Peek();
 
-            if (char.IsWhiteSpace(c))
+            // Явная проверка только тех символов, что указаны в спецификации
+            if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
             {
                 Advance();
             }
