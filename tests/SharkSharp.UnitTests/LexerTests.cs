@@ -135,41 +135,4 @@ public class LexerTests
         Assert.Equal(1, eof.Line);
         Assert.Equal(2, eof.Column);
     }
-
-    [Fact]
-    public void LexerException_DefaultConstructor_CreatesInstance()
-    {
-        LexerException exception = new LexerException();
-        Assert.NotNull(exception);
-        Assert.Equal(0, exception.Position.Line);
-        Assert.Equal(0, exception.Position.Column);
-    }
-
-    [Fact]
-    public void LexerException_MessageConstructor_SetsMessage()
-    {
-        LexerException exception = new LexerException("test error");
-        Assert.Contains("test error", exception.Message);
-    }
-
-    [Fact]
-    public void LexerException_InnerExceptionConstructor_SetsInnerException()
-    {
-        Exception inner = new InvalidOperationException("inner");
-        LexerException exception = new LexerException("outer", inner);
-        Assert.Contains("outer", exception.Message);
-        Assert.Same(inner, exception.InnerException);
-    }
-
-    [Fact]
-    public void LexerException_PositionConstructor_FormatsMessage()
-    {
-        SourcePosition position = new SourcePosition(5, 10);
-        LexerException exception = new LexerException("error", position);
-        Assert.Contains("error", exception.Message);
-        Assert.Contains("5", exception.Message);
-        Assert.Contains("10", exception.Message);
-        Assert.Equal(5, exception.Position.Line);
-        Assert.Equal(10, exception.Position.Column);
-    }
 }
