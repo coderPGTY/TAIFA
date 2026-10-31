@@ -1,9 +1,13 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/SharkSharp.Cli/SharkSharp.Cli.csproj" />
     <Project Path="src/SharkSharp.Lexer/SharkSharp.Lexer.csproj" />
+    <Project Path="src/SharkSharp.Parser/SharkSharp.Parser.csproj" />
     <Project Path="src/SharkSharp/SharkSharp.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/SharkSharp.AcceptanceTests/SharkSharp.AcceptanceTests.csproj" />
+    <Project Path="tests/SharkSharp.Parser.UnitTests/SharkSharp.Parser.UnitTests.csproj" />
     <Project Path="tests/SharkSharp.UnitTests/SharkSharp.UnitTests.csproj" />
   </Folder>
 </Solution>
