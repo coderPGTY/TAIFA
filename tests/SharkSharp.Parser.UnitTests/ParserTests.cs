@@ -9,7 +9,7 @@ namespace SharkSharp.Parser.UnitTests;
 
 public class ParserTests
 {
-    public static TheoryData<string, int> ValidProgramData => new TheoryData<string, int>
+    public static TheoryData<string, long> ValidProgramData => new TheoryData<string, long>
     {
         { "func main() { 42; }", 42 },
         { "func main() { 10 + 2 * 3; }", 16 },
@@ -22,6 +22,7 @@ public class ParserTests
         { "func main() { min(5, 10); }", 5 },
         { "func main() { max(5, 10); }", 10 },
         { "func main() { 10 + 7 * (2 * 3 + 4) + 5 + -5; }", 80 },
+        { "func main() { 9223372036854775807; }", 9223372036854775807 },
     };
 
     public static TheoryData<string, string> ErrorProgramData => new TheoryData<string, string>
@@ -35,19 +36,16 @@ public class ParserTests
 
     [Theory]
     [MemberData(nameof(ValidProgramData))]
-#pragma warning disable xUnit1026
-    public void ParseProgram_ValidExpressions_EvaluatesCorrectly(string source, int expectedLastValue)
+    public void ParseProgram_ValidExpressions_EvaluatesCorrectly(string source, long expectedLastValue)
     {
         SharkSharp.Lexer.Lexer lexer = new SharkSharp.Lexer.Lexer(source);
         List<Token> tokens = lexer.Tokenize();
-
         SharkSharp.Parser.Parser parser = new SharkSharp.Parser.Parser(tokens, new FakeEnvironment(new List<string>()));
 
-        parser.ParseProgram();
+        long actualLastValue = parser.ParseProgram();
 
-        Assert.Equal(expectedLastValue, expectedLastValue);
+        Assert.Equal(expectedLastValue, actualLastValue);
     }
-#pragma warning restore xUnit1026
 
     [Theory]
     [MemberData(nameof(ErrorProgramData))]
@@ -55,11 +53,9 @@ public class ParserTests
     {
         SharkSharp.Lexer.Lexer lexer = new SharkSharp.Lexer.Lexer(source);
         List<Token> tokens = lexer.Tokenize();
-
         SharkSharp.Parser.Parser parser = new SharkSharp.Parser.Parser(tokens, new FakeEnvironment(new List<string>()));
 
         ParseException exception = Assert.Throws<ParseException>(() => parser.ParseProgram());
-
         Assert.Contains(expectedMessagePart, exception.Message);
     }
 

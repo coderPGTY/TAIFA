@@ -18,7 +18,6 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SharkSharp\SharkSharp.csproj" />
     <ProjectReference Include="..\..\src\SharkSharp.Lexer\SharkSharp.Lexer.csproj" />
   </ItemGroup>
 </Project>

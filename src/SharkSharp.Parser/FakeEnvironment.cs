@@ -20,12 +20,12 @@ public class FakeEnvironment : IEnvironment
     /// <summary>
     /// Список выведенных значений для проверки в тестах.
     /// </summary>
-    public List<int> Outputs { get; } = new List<int>();
+    public List<long> Outputs { get; } = new List<long>();
 
     /// <summary>
     /// Выводит целое число в поток вывода.
     /// </summary>
-    public void WriteLine(int value)
+    public void WriteLine(long value)
     {
         Outputs.Add(value);
     }

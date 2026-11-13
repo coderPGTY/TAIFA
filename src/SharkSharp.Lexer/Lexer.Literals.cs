@@ -1,11 +1,15 @@
+using System;
+
 namespace SharkSharp.Lexer;
 
+/// <summary>
+/// Часть лексера, отвечающая за разбор числовых и строковых литералов.
+/// </summary>
 public partial class Lexer
 {
     private Token ReadNumber(int startLine, int startColumn)
     {
         int startPos = _position;
-
         while (!IsAtEnd() && IsAsciiDigit(Peek()))
         {
             Advance();
@@ -13,9 +17,20 @@ public partial class Lexer
 
         string lexeme = _source.Substring(startPos, _position - startPos);
 
-        if (lexeme.Length > 1 && lexeme.StartsWith("0"))
+        if (lexeme.Length > 1 && lexeme[0] == '0')
         {
             throw new LexerException("Целочисленный литерал не может начинаться с ведущего нуля", new SourcePosition(startLine, startColumn));
+        }
+
+        char nextChar = Peek();
+        if (IsAsciiLetter(nextChar) || nextChar == '_')
+        {
+            throw new LexerException($"Недопустимый символ '{nextChar}' сразу после числового литерала", new SourcePosition(startLine, startColumn));
+        }
+
+        if (!long.TryParse(lexeme, out long _))
+        {
+            throw new LexerException($"Целочисленный литерал выходит за допустимый диапазон 64-битного знакового целого: {lexeme}", new SourcePosition(startLine, startColumn));
         }
 
         return new Token(TokenType.IntegerLiteral, lexeme, startLine, startColumn);
@@ -29,7 +44,6 @@ public partial class Lexer
         while (!IsAtEnd() && Peek() != '"')
         {
             char c = Peek();
-
             if (c == '\n' || c == '\r')
             {
                 throw new LexerException("Незакрытая строковая константа: запрещён перенос строки внутри литерала", CurrentPosition());
@@ -38,7 +52,6 @@ public partial class Lexer
             if (c == '\\')
             {
                 Advance();
-
                 if (IsAtEnd())
                 {
                     throw new LexerException("Незавершенная escape-последовательность в строке", CurrentPosition());

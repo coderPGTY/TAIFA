@@ -8,7 +8,7 @@ public class ConsoleEnvironment : IEnvironment
     /// <summary>
     /// Выводит целое число в поток вывода.
     /// </summary>
-    public void WriteLine(int value)
+    public void WriteLine(long value)
     {
         System.Console.WriteLine(value);
     }

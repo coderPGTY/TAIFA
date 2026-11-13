@@ -4,9 +4,6 @@ using SharkSharp.Lexer;
 
 namespace SharkSharp.Parser;
 
-/// <summary>
-/// Исключение, возникающее при синтаксических ошибках или ошибках выполнения.
-/// </summary>
 public sealed class ParseException : Exception
 {
     public ParseException()
@@ -29,8 +26,5 @@ public sealed class ParseException : Exception
         Position = position;
     }
 
-    /// <summary>
-    /// Позиция в коде, где произошла ошибка.
-    /// </summary>
     public SourcePosition Position { get; } = new SourcePosition(0, 0);
 }

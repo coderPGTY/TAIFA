@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 using SharkSharp.Lexer;
@@ -31,7 +32,6 @@ public static class Program
             SharkSharp.Lexer.Lexer lexer = new SharkSharp.Lexer.Lexer(sourceCode);
             List<Token> tokens = lexer.Tokenize();
 
-            // ДОБАВЛЕН ConsoleEnvironment
             IEnvironment env = new ConsoleEnvironment();
             SharkSharp.Parser.Parser parser = new SharkSharp.Parser.Parser(tokens, env);
             parser.ParseProgram();

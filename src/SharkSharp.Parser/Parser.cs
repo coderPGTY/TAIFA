@@ -14,6 +14,7 @@ public class Parser
     private readonly List<Token> _tokens;
     private int _position;
     private readonly IEnvironment _env;
+    private long _lastValue;
 
     public Parser(List<Token> tokens, IEnvironment env)
     {
@@ -25,13 +26,7 @@ public class Parser
     /// <summary>
     /// Запускает разбор и интерпретацию всей программы.
     /// </summary>
-    public void ParseProgram()
-    {
-        ParseMainFunction();
-        Match(TokenType.Eof);
-    }
-
-    private void ParseMainFunction()
+    public long ParseProgram()
     {
         Match(TokenType.Func);
 
@@ -44,6 +39,9 @@ public class Parser
         Match(TokenType.LeftParen);
         Match(TokenType.RightParen);
         ParseBlock();
+
+        Match(TokenType.Eof);
+        return _lastValue;
     }
 
     private void ParseBlock()
@@ -66,7 +64,7 @@ public class Parser
         }
         else
         {
-            ParseExpression();
+            _lastValue = ParseExpression();
         }
 
         Match(TokenType.Semicolon);
@@ -77,26 +75,27 @@ public class Parser
         Match(TokenType.Identifier);
         Match(TokenType.LeftParen);
 
-        int value = ParseExpression();
+        long value = ParseExpression();
 
         Match(TokenType.RightParen);
 
         _env.WriteLine(value);
+        _lastValue = value;
     }
 
-    private int ParseExpression()
+    private long ParseExpression()
     {
         return ParseAdditiveExpression();
     }
 
-    private int ParseAdditiveExpression()
+    private long ParseAdditiveExpression()
     {
-        int left = ParseMultiplicativeExpression();
+        long left = ParseMultiplicativeExpression();
 
         while (Peek().Type == TokenType.Plus || Peek().Type == TokenType.Minus)
         {
             Token op = Advance();
-            int right = ParseMultiplicativeExpression();
+            long right = ParseMultiplicativeExpression();
 
             if (op.Type == TokenType.Plus)
             {
@@ -111,14 +110,14 @@ public class Parser
         return left;
     }
 
-    private int ParseMultiplicativeExpression()
+    private long ParseMultiplicativeExpression()
     {
-        int left = ParseUnaryExpression();
+        long left = ParseUnaryExpression();
 
         while (Peek().Type == TokenType.Star || Peek().Type == TokenType.Slash || Peek().Type == TokenType.Percent)
         {
             Token op = Advance();
-            int right = ParseUnaryExpression();
+            long right = ParseUnaryExpression();
 
             if (op.Type == TokenType.Star)
             {
@@ -147,32 +146,32 @@ public class Parser
         return left;
     }
 
-    private int ParseUnaryExpression()
+    private long ParseUnaryExpression()
     {
         if (Peek().Type == TokenType.Minus)
         {
-            Token op = Advance();
-            int value = ParseUnaryExpression();
+            Advance();
+            long value = ParseUnaryExpression();
             return -value;
         }
 
         return ParsePrimaryExpression();
     }
 
-    private int ParsePrimaryExpression()
+    private long ParsePrimaryExpression()
     {
         Token current = Peek();
 
         if (current.Type == TokenType.IntegerLiteral)
         {
             Advance();
-            return int.Parse(current.Lexeme);
+            return long.Parse(current.Lexeme);
         }
 
         if (current.Type == TokenType.LeftParen)
         {
             Advance();
-            int value = ParseExpression();
+            long value = ParseExpression();
             Match(TokenType.RightParen);
             return value;
         }
@@ -185,12 +184,12 @@ public class Parser
         throw new ParseException($"Ожидалось число, скобка или функция, но встречено '{current.Lexeme}'", new SourcePosition(current.Line, current.Column));
     }
 
-    private int ParseFunctionCall()
+    private long ParseFunctionCall()
     {
         Token name = Advance();
         Match(TokenType.LeftParen);
 
-        List<int> arguments = new List<int>();
+        List<long> arguments = new List<long>();
         if (Peek().Type != TokenType.RightParen)
         {
             arguments.Add(ParseExpression());
@@ -206,7 +205,7 @@ public class Parser
         return EvaluateBuiltinFunction(name.Lexeme, arguments, name);
     }
 
-    private int EvaluateBuiltinFunction(string functionName, List<int> arguments, Token token)
+    private long EvaluateBuiltinFunction(string functionName, List<long> arguments, Token token)
     {
         switch (functionName)
         {
@@ -217,7 +216,12 @@ public class Parser
                 }
 
                 string input = _env.ReadLine() ?? string.Empty;
-                return int.Parse(input);
+                if (!long.TryParse(input, out long parsedValue))
+                {
+                    throw new ParseException("Ошибка ввода: ожидалось целое число", new SourcePosition(token.Line, token.Column));
+                }
+
+                return parsedValue;
 
             case "abs":
                 if (arguments.Count != 1)

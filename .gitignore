@@ -8,7 +8,6 @@
 /src/*/obj/
 /tests/*/bin/
 /tests/*/obj/
-
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -21,6 +20,10 @@ x86/
 # Tests Code Coverage
 tests/coverage/
 tests/coverage-report/
+
+# Test Results artifacts
+TestResults/
+**/TestResults/
 
 # Sandbox directory
 sandbox/
