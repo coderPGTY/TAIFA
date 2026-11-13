@@ -54,6 +54,11 @@ namespace SharkSharp.Cli
                 Console.Error.WriteLine($"Синтаксическая ошибка или ошибка выполнения: {ex.Message}");
                 return 1;
             }
+            catch (OverflowException)
+            {
+                Console.Error.WriteLine("Ошибка выполнения: результат арифметической операции вне диапазона типа int");
+                return 1;
+            }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Непредвиденная ошибка: {ex.Message}");

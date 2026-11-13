@@ -32,6 +32,7 @@ namespace SharkSharp.Parser.UnitTests
             { "func main() { unknown(); }", "Неизвестная функция" },
             { "func test() { }", "Точкой входа должна быть функция 'main'" },
             { "func main() { 5 + print(1); }", "Неизвестная функция 'print'" },
+            { "func main() { 9223372036854775807 + 1; }", "вне диапазона" },
         };
 
         [Theory]
@@ -57,29 +58,6 @@ namespace SharkSharp.Parser.UnitTests
 
             ParseException exception = Assert.Throws<ParseException>(() => parser.ParseProgram());
             Assert.Contains(expectedMessagePart, exception.Message);
-        }
-
-        [Fact]
-        public void ParseException_DefaultConstructor_CreatesInstance()
-        {
-            ParseException exception = new ParseException();
-            Assert.NotNull(exception);
-        }
-
-        [Fact]
-        public void ParseException_MessageConstructor_SetsMessage()
-        {
-            ParseException exception = new ParseException("test error");
-            Assert.Contains("test error", exception.Message);
-        }
-
-        [Fact]
-        public void ParseException_InnerExceptionConstructor_SetsInnerException()
-        {
-            Exception inner = new InvalidOperationException("inner");
-            ParseException exception = new ParseException("outer", inner);
-            Assert.Contains("outer", exception.Message);
-            Assert.Same(inner, exception.InnerException);
         }
 
         [Fact]

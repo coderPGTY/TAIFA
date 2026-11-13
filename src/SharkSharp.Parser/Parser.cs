@@ -16,9 +16,6 @@ namespace SharkSharp.Parser
         private readonly IEnvironment env;
         private long lastValue;
 
-        /// <summary>
-        /// Инициализирует новый экземпляр парсера.
-        /// </summary>
         public Parser(List<Token> tokens, IEnvironment env)
         {
             this.tokens = tokens;
@@ -28,8 +25,20 @@ namespace SharkSharp.Parser
 
         /// <summary>
         /// Запускает разбор и интерпретацию всей программы.
+        /// Соответствует правилу EBNF: program
         /// </summary>
         public long ParseProgram()
+        {
+            this.ParseMainFunction();
+            this.Match(TokenType.Eof);
+            return this.lastValue;
+        }
+
+        /// <summary>
+        /// Разбирает функцию main.
+        /// Соответствует правилу EBNF: main_function
+        /// </summary>
+        private void ParseMainFunction()
         {
             this.Match(TokenType.Func);
 
@@ -42,9 +51,6 @@ namespace SharkSharp.Parser
             this.Match(TokenType.LeftParen);
             this.Match(TokenType.RightParen);
             this.ParseBlock();
-
-            this.Match(TokenType.Eof);
-            return this.lastValue;
         }
 
         private void ParseBlock()
@@ -99,15 +105,7 @@ namespace SharkSharp.Parser
             {
                 Token op = this.Advance();
                 long right = this.ParseMultiplicativeExpression();
-
-                if (op.Type == TokenType.Plus)
-                {
-                    left = left + right;
-                }
-                else
-                {
-                    left = left - right;
-                }
+                left = CheckedArithmetic(left, right, op.Type, op);
             }
 
             return left;
@@ -122,28 +120,14 @@ namespace SharkSharp.Parser
                 Token op = this.Advance();
                 long right = this.ParseUnaryExpression();
 
-                if (op.Type == TokenType.Star)
+                if ((op.Type == TokenType.Slash || op.Type == TokenType.Percent) && right == 0)
                 {
-                    left = left * right;
+                    throw new ParseException(
+                        op.Type == TokenType.Slash ? "Деление на ноль" : "Остаток от деления на ноль",
+                        new SourcePosition(op.Line, op.Column));
                 }
-                else if (op.Type == TokenType.Slash)
-                {
-                    if (right == 0)
-                    {
-                        throw new ParseException("Деление на ноль", new SourcePosition(op.Line, op.Column));
-                    }
 
-                    left = left / right;
-                }
-                else if (op.Type == TokenType.Percent)
-                {
-                    if (right == 0)
-                    {
-                        throw new ParseException("Остаток от деления на ноль", new SourcePosition(op.Line, op.Column));
-                    }
-
-                    left = left % right;
-                }
+                left = CheckedArithmetic(left, right, op.Type, op);
             }
 
             return left;
@@ -153,9 +137,18 @@ namespace SharkSharp.Parser
         {
             if (this.Peek().Type == TokenType.Minus)
             {
-                this.Advance();
+                Token op = this.Advance();
                 long value = this.ParseUnaryExpression();
-                return -value;
+                try
+                {
+                    return checked(-value);
+                }
+                catch (OverflowException)
+                {
+                    throw new ParseException(
+                        "Результат арифметической операции вне диапазона типа int",
+                        new SourcePosition(op.Line, op.Column));
+                }
             }
 
             return this.ParsePrimaryExpression();
@@ -187,6 +180,10 @@ namespace SharkSharp.Parser
             throw new ParseException($"Ожидалось число, скобка или функция, но встречено '{current.Lexeme}'", new SourcePosition(current.Line, current.Column));
         }
 
+        /// <summary>
+        /// Разбирает вызов функции.
+        /// Соответствует правилу EBNF: function_call
+        /// </summary>
         private long ParseFunctionCall()
         {
             Token name = this.Advance();
@@ -195,17 +192,30 @@ namespace SharkSharp.Parser
             List<long> arguments = new List<long>();
             if (this.Peek().Type != TokenType.RightParen)
             {
-                arguments.Add(this.ParseExpression());
-                while (this.Peek().Type == TokenType.Comma)
-                {
-                    this.Advance();
-                    arguments.Add(this.ParseExpression());
-                }
+                arguments = this.ParseArgumentList();
             }
 
             this.Match(TokenType.RightParen);
 
             return this.EvaluateBuiltinFunction(name.Lexeme, arguments, name);
+        }
+
+        /// <summary>
+        /// Разбирает список аргументов функции.
+        /// Соответствует правилу EBNF: argument_list
+        /// </summary>
+        private List<long> ParseArgumentList()
+        {
+            List<long> arguments = new List<long>();
+            arguments.Add(this.ParseExpression());
+
+            while (this.Peek().Type == TokenType.Comma)
+            {
+                this.Advance();
+                arguments.Add(this.ParseExpression());
+            }
+
+            return arguments;
         }
 
         private long EvaluateBuiltinFunction(string functionName, List<long> arguments, Token token)
@@ -252,6 +262,34 @@ namespace SharkSharp.Parser
 
                 default:
                     throw new ParseException($"Неизвестная функция '{functionName}'", new SourcePosition(token.Line, token.Column));
+            }
+        }
+
+        /// <summary>
+        /// Выполняет арифметическую операцию с контролем переполнения long.
+        /// При переполнении превращает OverflowException в ParseException на русском.
+        /// </summary>
+        private static long CheckedArithmetic(long left, long right, TokenType operatorType, Token operatorToken)
+        {
+            try
+            {
+                return operatorType switch
+                {
+                    TokenType.Plus => checked(left + right),
+                    TokenType.Minus => checked(left - right),
+                    TokenType.Star => checked(left * right),
+                    TokenType.Slash => left / right,
+                    TokenType.Percent => left % right,
+                    _ => throw new ParseException(
+                        $"Неизвестный оператор '{operatorToken.Lexeme}'",
+                        new SourcePosition(operatorToken.Line, operatorToken.Column)),
+                };
+            }
+            catch (OverflowException)
+            {
+                throw new ParseException(
+                    "Результат арифметической операции вне диапазона типа int",
+                    new SourcePosition(operatorToken.Line, operatorToken.Column));
             }
         }
 
