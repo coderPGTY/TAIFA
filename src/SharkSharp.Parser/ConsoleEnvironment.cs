@@ -1,23 +1,24 @@
-namespace SharkSharp.Parser;
-
-/// <summary>
-/// Реализация окружения для консольного приложения.
-/// </summary>
-public class ConsoleEnvironment : IEnvironment
+namespace SharkSharp.Parser
 {
     /// <summary>
-    /// Выводит целое число в поток вывода.
+    /// Реализация окружения для консольного приложения.
     /// </summary>
-    public void WriteLine(long value)
+    public class ConsoleEnvironment : IEnvironment
     {
-        System.Console.WriteLine(value);
-    }
+        /// <summary>
+        /// Выводит целое число в поток вывода.
+        /// </summary>
+        public void WriteLine(long value)
+        {
+            System.Console.WriteLine(value);
+        }
 
-    /// <summary>
-    /// Читает строку из потока ввода.
-    /// </summary>
-    public string? ReadLine()
-    {
-        return System.Console.ReadLine();
+        /// <summary>
+        /// Читает строку из потока ввода.
+        /// </summary>
+        public string? ReadLine()
+        {
+            return System.Console.ReadLine();
+        }
     }
 }

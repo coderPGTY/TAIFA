@@ -1,23 +1,25 @@
-namespace SharkSharp.Lexer;
-
-public partial class Lexer
+namespace SharkSharp.Lexer
 {
-    private Token ReadIdentifierOrKeyword(int startLine, int startColumn)
+    /// <summary>
+    /// Часть лексера для разбора идентификаторов и ключевых слов.
+    /// </summary>
+    public partial class Lexer
     {
-        int startPos = _position;
-
-        while (!IsAtEnd() && (IsAsciiLetterOrDigit(Peek()) || Peek() == '_'))
+        private Token ReadIdentifierOrKeyword(int startLine, int startColumn)
         {
-            Advance();
+            int startPos = this.position;
+            while (!this.IsAtEnd() && (IsAsciiLetterOrDigit(this.Peek()) || this.Peek() == '_'))
+            {
+                this.Advance();
+            }
+
+            string text = this.source.Substring(startPos, this.position - startPos);
+            if (Keywords.TryGetKeyword(text, out TokenType keywordType))
+            {
+                return new Token(keywordType, text, startLine, startColumn);
+            }
+
+            return new Token(TokenType.Identifier, text, startLine, startColumn);
         }
-
-        string text = _source.Substring(startPos, _position - startPos);
-
-        if (Keywords.TryGetKeyword(text, out TokenType keywordType))
-        {
-            return new Token(keywordType, text, startLine, startColumn);
-        }
-
-        return new Token(TokenType.Identifier, text, startLine, startColumn);
     }
 }

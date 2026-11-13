@@ -67,6 +67,6 @@ pushd $ProjectDir
 Remove-Item -Path tests/coverage/ -Recurse -ErrorAction Ignore
 Remove-Item -Path tests/coverage-report/ -Recurse -ErrorAction Ignore
 EchoAndCall -- dotnet test --settings tests/tests.runsettings --collect "XPlat Code Coverage" --results-directory=tests/coverage/
-EchoAndCall -- dotnet tool run dotnet-coverage merge tests/coverage/*/*.xml --output tests/coverage/merged.cobertura.xml --output-format cobertura
-EchoAndCall -- dotnet tool run reportgenerator "-reports:tests/coverage/merged.cobertura.xml" "-targetdir:tests/coverage-report/" "-reporttypes:Html"
+EchoAndCall -- dotnet-coverage merge tests/coverage/*/*.xml --output tests/coverage/merged.cobertura.xml --output-format cobertura
+EchoAndCall -- reportgenerator "-reports:tests/coverage/merged.cobertura.xml" "-targetdir:tests/coverage-report/" "-reporttypes:Html"
 popd

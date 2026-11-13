@@ -1,289 +1,293 @@
-using System;
-using System.Collections.Generic;
-
-using SharkSharp.Lexer;
-
-namespace SharkSharp.Parser;
-
-/// <summary>
-/// Парсер и интерпретатор языка SharkSharp, использующий метод рекурсивного спуска.
-/// Вычисляет значения выражений непосредственно в процессе разбора.
-/// </summary>
-public class Parser
+namespace SharkSharp.Parser
 {
-    private readonly List<Token> _tokens;
-    private int _position;
-    private readonly IEnvironment _env;
-    private long _lastValue;
+    using System;
+    using System.Collections.Generic;
 
-    public Parser(List<Token> tokens, IEnvironment env)
-    {
-        _tokens = tokens;
-        _position = 0;
-        _env = env;
-    }
+    using SharkSharp.Lexer;
 
     /// <summary>
-    /// Запускает разбор и интерпретацию всей программы.
+    /// Парсер и интерпретатор языка SharkSharp, использующий метод рекурсивного спуска.
+    /// Вычисляет значения выражений непосредственно в процессе разбора.
     /// </summary>
-    public long ParseProgram()
+    public class Parser
     {
-        Match(TokenType.Func);
+        private readonly List<Token> tokens;
+        private int position;
+        private readonly IEnvironment env;
+        private long lastValue;
 
-        Token name = Match(TokenType.Identifier);
-        if (name.Lexeme != "main")
+        /// <summary>
+        /// Инициализирует новый экземпляр парсера.
+        /// </summary>
+        public Parser(List<Token> tokens, IEnvironment env)
         {
-            throw new ParseException("Точкой входа должна быть функция 'main'", new SourcePosition(name.Line, name.Column));
+            this.tokens = tokens;
+            this.position = 0;
+            this.env = env;
         }
 
-        Match(TokenType.LeftParen);
-        Match(TokenType.RightParen);
-        ParseBlock();
-
-        Match(TokenType.Eof);
-        return _lastValue;
-    }
-
-    private void ParseBlock()
-    {
-        Match(TokenType.LeftBrace);
-
-        while (!IsAtEnd() && Peek().Type != TokenType.RightBrace)
+        /// <summary>
+        /// Запускает разбор и интерпретацию всей программы.
+        /// </summary>
+        public long ParseProgram()
         {
-            ParseStatement();
-        }
+            this.Match(TokenType.Func);
 
-        Match(TokenType.RightBrace);
-    }
-
-    private void ParseStatement()
-    {
-        if (Peek().Type == TokenType.Identifier && Peek().Lexeme == "print")
-        {
-            ParsePrintCall();
-        }
-        else
-        {
-            _lastValue = ParseExpression();
-        }
-
-        Match(TokenType.Semicolon);
-    }
-
-    private void ParsePrintCall()
-    {
-        Match(TokenType.Identifier);
-        Match(TokenType.LeftParen);
-
-        long value = ParseExpression();
-
-        Match(TokenType.RightParen);
-
-        _env.WriteLine(value);
-        _lastValue = value;
-    }
-
-    private long ParseExpression()
-    {
-        return ParseAdditiveExpression();
-    }
-
-    private long ParseAdditiveExpression()
-    {
-        long left = ParseMultiplicativeExpression();
-
-        while (Peek().Type == TokenType.Plus || Peek().Type == TokenType.Minus)
-        {
-            Token op = Advance();
-            long right = ParseMultiplicativeExpression();
-
-            if (op.Type == TokenType.Plus)
+            Token name = this.Match(TokenType.Identifier);
+            if (name.Lexeme != "main")
             {
-                left = left + right;
+                throw new ParseException("Точкой входа должна быть функция 'main'", new SourcePosition(name.Line, name.Column));
+            }
+
+            this.Match(TokenType.LeftParen);
+            this.Match(TokenType.RightParen);
+            this.ParseBlock();
+
+            this.Match(TokenType.Eof);
+            return this.lastValue;
+        }
+
+        private void ParseBlock()
+        {
+            this.Match(TokenType.LeftBrace);
+
+            while (!this.IsAtEnd() && this.Peek().Type != TokenType.RightBrace)
+            {
+                this.ParseStatement();
+            }
+
+            this.Match(TokenType.RightBrace);
+        }
+
+        private void ParseStatement()
+        {
+            if (this.Peek().Type == TokenType.Identifier && this.Peek().Lexeme == "print")
+            {
+                this.ParsePrintCall();
             }
             else
             {
-                left = left - right;
+                this.lastValue = this.ParseExpression();
             }
+
+            this.Match(TokenType.Semicolon);
         }
 
-        return left;
-    }
-
-    private long ParseMultiplicativeExpression()
-    {
-        long left = ParseUnaryExpression();
-
-        while (Peek().Type == TokenType.Star || Peek().Type == TokenType.Slash || Peek().Type == TokenType.Percent)
+        private void ParsePrintCall()
         {
-            Token op = Advance();
-            long right = ParseUnaryExpression();
+            this.Match(TokenType.Identifier);
+            this.Match(TokenType.LeftParen);
 
-            if (op.Type == TokenType.Star)
+            long value = this.ParseExpression();
+
+            this.Match(TokenType.RightParen);
+
+            this.env.WriteLine(value);
+            this.lastValue = value;
+        }
+
+        private long ParseExpression()
+        {
+            return this.ParseAdditiveExpression();
+        }
+
+        private long ParseAdditiveExpression()
+        {
+            long left = this.ParseMultiplicativeExpression();
+
+            while (this.Peek().Type == TokenType.Plus || this.Peek().Type == TokenType.Minus)
             {
-                left = left * right;
+                Token op = this.Advance();
+                long right = this.ParseMultiplicativeExpression();
+
+                if (op.Type == TokenType.Plus)
+                {
+                    left = left + right;
+                }
+                else
+                {
+                    left = left - right;
+                }
             }
-            else if (op.Type == TokenType.Slash)
+
+            return left;
+        }
+
+        private long ParseMultiplicativeExpression()
+        {
+            long left = this.ParseUnaryExpression();
+
+            while (this.Peek().Type == TokenType.Star || this.Peek().Type == TokenType.Slash || this.Peek().Type == TokenType.Percent)
             {
-                if (right == 0)
-                {
-                    throw new ParseException("Деление на ноль", new SourcePosition(op.Line, op.Column));
-                }
+                Token op = this.Advance();
+                long right = this.ParseUnaryExpression();
 
-                left = left / right;
+                if (op.Type == TokenType.Star)
+                {
+                    left = left * right;
+                }
+                else if (op.Type == TokenType.Slash)
+                {
+                    if (right == 0)
+                    {
+                        throw new ParseException("Деление на ноль", new SourcePosition(op.Line, op.Column));
+                    }
+
+                    left = left / right;
+                }
+                else if (op.Type == TokenType.Percent)
+                {
+                    if (right == 0)
+                    {
+                        throw new ParseException("Остаток от деления на ноль", new SourcePosition(op.Line, op.Column));
+                    }
+
+                    left = left % right;
+                }
             }
-            else if (op.Type == TokenType.Percent)
+
+            return left;
+        }
+
+        private long ParseUnaryExpression()
+        {
+            if (this.Peek().Type == TokenType.Minus)
             {
-                if (right == 0)
-                {
-                    throw new ParseException("Остаток от деления на ноль", new SourcePosition(op.Line, op.Column));
-                }
-
-                left = left % right;
+                this.Advance();
+                long value = this.ParseUnaryExpression();
+                return -value;
             }
+
+            return this.ParsePrimaryExpression();
         }
 
-        return left;
-    }
-
-    private long ParseUnaryExpression()
-    {
-        if (Peek().Type == TokenType.Minus)
+        private long ParsePrimaryExpression()
         {
-            Advance();
-            long value = ParseUnaryExpression();
-            return -value;
-        }
+            Token current = this.Peek();
 
-        return ParsePrimaryExpression();
-    }
-
-    private long ParsePrimaryExpression()
-    {
-        Token current = Peek();
-
-        if (current.Type == TokenType.IntegerLiteral)
-        {
-            Advance();
-            return long.Parse(current.Lexeme);
-        }
-
-        if (current.Type == TokenType.LeftParen)
-        {
-            Advance();
-            long value = ParseExpression();
-            Match(TokenType.RightParen);
-            return value;
-        }
-
-        if (current.Type == TokenType.Identifier)
-        {
-            return ParseFunctionCall();
-        }
-
-        throw new ParseException($"Ожидалось число, скобка или функция, но встречено '{current.Lexeme}'", new SourcePosition(current.Line, current.Column));
-    }
-
-    private long ParseFunctionCall()
-    {
-        Token name = Advance();
-        Match(TokenType.LeftParen);
-
-        List<long> arguments = new List<long>();
-        if (Peek().Type != TokenType.RightParen)
-        {
-            arguments.Add(ParseExpression());
-            while (Peek().Type == TokenType.Comma)
+            if (current.Type == TokenType.IntegerLiteral)
             {
-                Advance();
-                arguments.Add(ParseExpression());
+                this.Advance();
+                return long.Parse(current.Lexeme);
+            }
+
+            if (current.Type == TokenType.LeftParen)
+            {
+                this.Advance();
+                long value = this.ParseExpression();
+                this.Match(TokenType.RightParen);
+                return value;
+            }
+
+            if (current.Type == TokenType.Identifier)
+            {
+                return this.ParseFunctionCall();
+            }
+
+            throw new ParseException($"Ожидалось число, скобка или функция, но встречено '{current.Lexeme}'", new SourcePosition(current.Line, current.Column));
+        }
+
+        private long ParseFunctionCall()
+        {
+            Token name = this.Advance();
+            this.Match(TokenType.LeftParen);
+
+            List<long> arguments = new List<long>();
+            if (this.Peek().Type != TokenType.RightParen)
+            {
+                arguments.Add(this.ParseExpression());
+                while (this.Peek().Type == TokenType.Comma)
+                {
+                    this.Advance();
+                    arguments.Add(this.ParseExpression());
+                }
+            }
+
+            this.Match(TokenType.RightParen);
+
+            return this.EvaluateBuiltinFunction(name.Lexeme, arguments, name);
+        }
+
+        private long EvaluateBuiltinFunction(string functionName, List<long> arguments, Token token)
+        {
+            switch (functionName)
+            {
+                case "readInt":
+                    if (arguments.Count != 0)
+                    {
+                        throw new ParseException("Функция readInt не принимает аргументов", new SourcePosition(token.Line, token.Column));
+                    }
+
+                    string input = this.env.ReadLine() ?? string.Empty;
+                    if (!long.TryParse(input, out long parsedValue))
+                    {
+                        throw new ParseException("Ошибка ввода: ожидалось целое число", new SourcePosition(token.Line, token.Column));
+                    }
+
+                    return parsedValue;
+
+                case "abs":
+                    if (arguments.Count != 1)
+                    {
+                        throw new ParseException("Функция abs принимает ровно 1 аргумент", new SourcePosition(token.Line, token.Column));
+                    }
+
+                    return Math.Abs(arguments[0]);
+
+                case "min":
+                    if (arguments.Count != 2)
+                    {
+                        throw new ParseException("Функция min принимает ровно 2 аргумента", new SourcePosition(token.Line, token.Column));
+                    }
+
+                    return Math.Min(arguments[0], arguments[1]);
+
+                case "max":
+                    if (arguments.Count != 2)
+                    {
+                        throw new ParseException("Функция max принимает ровно 2 аргумента", new SourcePosition(token.Line, token.Column));
+                    }
+
+                    return Math.Max(arguments[0], arguments[1]);
+
+                default:
+                    throw new ParseException($"Неизвестная функция '{functionName}'", new SourcePosition(token.Line, token.Column));
             }
         }
 
-        Match(TokenType.RightParen);
-
-        return EvaluateBuiltinFunction(name.Lexeme, arguments, name);
-    }
-
-    private long EvaluateBuiltinFunction(string functionName, List<long> arguments, Token token)
-    {
-        switch (functionName)
+        private Token Peek()
         {
-            case "readInt":
-                if (arguments.Count != 0)
-                {
-                    throw new ParseException("Функция readInt не принимает аргументов", new SourcePosition(token.Line, token.Column));
-                }
+            if (this.IsAtEnd())
+            {
+                return this.tokens[this.tokens.Count - 1];
+            }
 
-                string input = _env.ReadLine() ?? string.Empty;
-                if (!long.TryParse(input, out long parsedValue))
-                {
-                    throw new ParseException("Ошибка ввода: ожидалось целое число", new SourcePosition(token.Line, token.Column));
-                }
-
-                return parsedValue;
-
-            case "abs":
-                if (arguments.Count != 1)
-                {
-                    throw new ParseException("Функция abs принимает ровно 1 аргумент", new SourcePosition(token.Line, token.Column));
-                }
-
-                return Math.Abs(arguments[0]);
-
-            case "min":
-                if (arguments.Count != 2)
-                {
-                    throw new ParseException("Функция min принимает ровно 2 аргумента", new SourcePosition(token.Line, token.Column));
-                }
-
-                return Math.Min(arguments[0], arguments[1]);
-
-            case "max":
-                if (arguments.Count != 2)
-                {
-                    throw new ParseException("Функция max принимает ровно 2 аргумента", new SourcePosition(token.Line, token.Column));
-                }
-
-                return Math.Max(arguments[0], arguments[1]);
-
-            default:
-                throw new ParseException($"Неизвестная функция '{functionName}'", new SourcePosition(token.Line, token.Column));
-        }
-    }
-
-    private Token Peek()
-    {
-        if (IsAtEnd())
-        {
-            return _tokens[_tokens.Count - 1];
+            return this.tokens[this.position];
         }
 
-        return _tokens[_position];
-    }
-
-    private Token Advance()
-    {
-        if (!IsAtEnd())
+        private Token Advance()
         {
-            _position++;
+            if (!this.IsAtEnd())
+            {
+                this.position++;
+            }
+
+            return this.tokens[this.position - 1];
         }
 
-        return _tokens[_position - 1];
-    }
-
-    private Token Match(TokenType type)
-    {
-        if (Peek().Type == type)
+        private Token Match(TokenType type)
         {
-            return Advance();
+            if (this.Peek().Type == type)
+            {
+                return this.Advance();
+            }
+
+            throw new ParseException($"Ожидался токен {type}, но встречен {this.Peek().Type}", new SourcePosition(this.Peek().Line, this.Peek().Column));
         }
 
-        throw new ParseException($"Ожидался токен {type}, но встречен {Peek().Type}", new SourcePosition(Peek().Line, Peek().Column));
-    }
-
-    private bool IsAtEnd()
-    {
-        return _position >= _tokens.Count || _tokens[_position].Type == TokenType.Eof;
+        private bool IsAtEnd()
+        {
+            return this.position >= this.tokens.Count || this.tokens[this.position].Type == TokenType.Eof;
+        }
     }
 }

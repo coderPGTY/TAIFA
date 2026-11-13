@@ -1,187 +1,182 @@
-using System.Collections.Generic;
-
-namespace SharkSharp.Lexer;
-
-/// <summary>
-/// Лексический анализатор языка SharkSharp. Читает исходный код посимвольно.
-/// </summary>
-public partial class Lexer
+namespace SharkSharp.Lexer
 {
-    private readonly string _source;
-    private int _position;
-    private int _line;
-    private int _column;
-
-    public Lexer(string source)
-    {
-        _source = source;
-        _position = 0;
-        _line = 1;
-        _column = 1;
-    }
+    using System.Collections.Generic;
 
     /// <summary>
-    /// Разбирает весь исходный код и возвращает список токенов.
+    /// Лексический анализатор языка SharkSharp. Читает исходный код посимвольно.
     /// </summary>
-    public List<Token> Tokenize()
+    public partial class Lexer
     {
-        List<Token> tokens = new List<Token>();
+        private readonly string source;
+        private int position;
+        private int line;
+        private int column;
 
-        while (true)
+        /// <summary>
+        /// Инициализирует новый экземпляр лексера.
+        /// </summary>
+        public Lexer(string source)
         {
-            Token token = GetNextToken();
-            tokens.Add(token);
+            this.source = source;
+            this.position = 0;
+            this.line = 1;
+            this.column = 1;
+        }
 
-            if (token.Type == TokenType.Eof)
+        /// <summary>
+        /// Разбирает весь исходный код и возвращает список токенов.
+        /// </summary>
+        public List<Token> Tokenize()
+        {
+            List<Token> tokens = new List<Token>();
+            while (true)
             {
-                break;
-            }
-        }
-
-        return tokens;
-    }
-
-    /// <summary>
-    /// Считывает и возвращает следующий токен из потока.
-    /// </summary>
-    private Token GetNextToken()
-    {
-        SkipWhitespaceAndComments();
-
-        if (IsAtEnd())
-        {
-            return new Token(TokenType.Eof, "", _line, _column);
-        }
-
-        int startLine = _line;
-        int startColumn = _column;
-        char currentChar = Peek();
-
-        if (currentChar == '"')
-        {
-            return ReadString(startLine, startColumn);
-        }
-
-        if (IsAsciiDigit(currentChar))
-        {
-            return ReadNumber(startLine, startColumn);
-        }
-
-        if (IsAsciiLetter(currentChar) || currentChar == '_')
-        {
-            return ReadIdentifierOrKeyword(startLine, startColumn);
-        }
-
-        return ReadOperatorOrDelimiter(startLine, startColumn);
-    }
-
-    private void SkipWhitespaceAndComments()
-    {
-        while (!IsAtEnd())
-        {
-            char c = Peek();
-
-            // Явная проверка только тех символов, что указаны в спецификации
-            if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
-            {
-                Advance();
-            }
-            else if (c == '/' && PeekNext() == '/')
-            {
-                while (!IsAtEnd() && Peek() != '\n')
+                Token token = this.GetNextToken();
+                tokens.Add(token);
+                if (token.Type == TokenType.Eof)
                 {
-                    Advance();
+                    break;
                 }
             }
-            else if (c == '/' && PeekNext() == '*')
-            {
-                Advance();
-                Advance();
 
-                while (!IsAtEnd())
+            return tokens;
+        }
+
+        private Token GetNextToken()
+        {
+            this.SkipWhitespaceAndComments();
+            if (this.IsAtEnd())
+            {
+                return new Token(TokenType.Eof, string.Empty, this.line, this.column);
+            }
+
+            int startLine = this.line;
+            int startColumn = this.column;
+            char currentChar = this.Peek();
+
+            if (currentChar == '"')
+            {
+                return this.ReadString(startLine, startColumn);
+            }
+
+            if (IsAsciiDigit(currentChar))
+            {
+                return this.ReadNumber(startLine, startColumn);
+            }
+
+            if (IsAsciiLetter(currentChar) || currentChar == '_')
+            {
+                return this.ReadIdentifierOrKeyword(startLine, startColumn);
+            }
+
+            return this.ReadOperatorOrDelimiter(startLine, startColumn);
+        }
+
+        private void SkipWhitespaceAndComments()
+        {
+            while (!this.IsAtEnd())
+            {
+                char c = this.Peek();
+                if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
                 {
-                    if (Peek() == '*' && PeekNext() == '/')
+                    this.Advance();
+                }
+                else if (c == '/' && this.PeekNext() == '/')
+                {
+                    while (!this.IsAtEnd() && this.Peek() != '\n')
                     {
-                        Advance();
-                        Advance();
-                        break;
+                        this.Advance();
+                    }
+                }
+                else if (c == '/' && this.PeekNext() == '*')
+                {
+                    this.Advance();
+                    this.Advance();
+                    while (!this.IsAtEnd())
+                    {
+                        if (this.Peek() == '*' && this.PeekNext() == '/')
+                        {
+                            this.Advance();
+                            this.Advance();
+                            break;
+                        }
+
+                        this.Advance();
                     }
 
-                    Advance();
+                    if (this.IsAtEnd())
+                    {
+                        throw new LexerException("Незакрытый блочный комментарий", this.CurrentPosition());
+                    }
                 }
-
-                if (IsAtEnd())
+                else
                 {
-                    throw new LexerException("Незакрытый блочный комментарий", CurrentPosition());
+                    break;
                 }
             }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    private char Peek()
-    {
-        if (IsAtEnd())
-        {
-            return '\0';
         }
 
-        return _source[_position];
-    }
-
-    private char PeekNext()
-    {
-        if (_position + 1 >= _source.Length)
+        private char Peek()
         {
-            return '\0';
-        }
-
-        return _source[_position + 1];
-    }
-
-    private void Advance()
-    {
-        if (!IsAtEnd())
-        {
-            if (_source[_position] == '\n')
+            if (this.IsAtEnd())
             {
-                _line++;
-                _column = 1;
-            }
-            else
-            {
-                _column++;
+                return '\0';
             }
 
-            _position++;
+            return this.source[this.position];
         }
-    }
 
-    private bool IsAtEnd()
-    {
-        return _position >= _source.Length;
-    }
+        private char PeekNext()
+        {
+            if (this.position + 1 >= this.source.Length)
+            {
+                return '\0';
+            }
 
-    private SourcePosition CurrentPosition()
-    {
-        return new SourcePosition(_line, _column);
-    }
+            return this.source[this.position + 1];
+        }
 
-    private static bool IsAsciiLetter(char c)
-    {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-    }
+        private void Advance()
+        {
+            if (!this.IsAtEnd())
+            {
+                if (this.source[this.position] == '\n')
+                {
+                    this.line++;
+                    this.column = 1;
+                }
+                else
+                {
+                    this.column++;
+                }
 
-    private static bool IsAsciiDigit(char c)
-    {
-        return c >= '0' && c <= '9';
-    }
+                this.position++;
+            }
+        }
 
-    private static bool IsAsciiLetterOrDigit(char c)
-    {
-        return IsAsciiLetter(c) || IsAsciiDigit(c);
+        private bool IsAtEnd()
+        {
+            return this.position >= this.source.Length;
+        }
+
+        private SourcePosition CurrentPosition()
+        {
+            return new SourcePosition(this.line, this.column);
+        }
+
+        private static bool IsAsciiLetter(char c)
+        {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        }
+
+        private static bool IsAsciiDigit(char c)
+        {
+            return c >= '0' && c <= '9';
+        }
+
+        private static bool IsAsciiLetterOrDigit(char c)
+        {
+            return IsAsciiLetter(c) || IsAsciiDigit(c);
+        }
     }
 }

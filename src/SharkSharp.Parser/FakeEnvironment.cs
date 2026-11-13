@@ -1,40 +1,41 @@
-using System.Collections.Generic;
-
-namespace SharkSharp.Parser;
-
-/// <summary>
-/// Тестовый дублёр (Fake) окружения для приемочных тестов.
-/// </summary>
-public class FakeEnvironment : IEnvironment
+namespace SharkSharp.Parser
 {
-    private readonly Queue<string> _inputs;
+    using System.Collections.Generic;
 
     /// <summary>
-    /// Инициализирует новый экземпляр тестового окружения.
+    /// Тестовый дублёр (Fake) окружения для приемочных тестов.
     /// </summary>
-    public FakeEnvironment(IEnumerable<string> inputs)
+    public class FakeEnvironment : IEnvironment
     {
-        _inputs = new Queue<string>(inputs);
-    }
+        private readonly Queue<string> inputs;
 
-    /// <summary>
-    /// Список выведенных значений для проверки в тестах.
-    /// </summary>
-    public List<long> Outputs { get; } = new List<long>();
+        /// <summary>
+        /// Инициализирует новый экземпляр тестового окружения.
+        /// </summary>
+        public FakeEnvironment(IEnumerable<string> inputs)
+        {
+            this.inputs = new Queue<string>(inputs);
+        }
 
-    /// <summary>
-    /// Выводит целое число в поток вывода.
-    /// </summary>
-    public void WriteLine(long value)
-    {
-        Outputs.Add(value);
-    }
+        /// <summary>
+        /// Список выведенных значений для проверки в тестах.
+        /// </summary>
+        public List<long> Outputs { get; } = new List<long>();
 
-    /// <summary>
-    /// Читает строку из потока ввода.
-    /// </summary>
-    public string? ReadLine()
-    {
-        return _inputs.Count > 0 ? _inputs.Dequeue() : string.Empty;
+        /// <summary>
+        /// Выводит целое число в поток вывода.
+        /// </summary>
+        public void WriteLine(long value)
+        {
+            this.Outputs.Add(value);
+        }
+
+        /// <summary>
+        /// Читает строку из потока ввода.
+        /// </summary>
+        public string? ReadLine()
+        {
+            return this.inputs.Count > 0 ? this.inputs.Dequeue() : string.Empty;
+        }
     }
 }
