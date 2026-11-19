@@ -1,28 +1,22 @@
 namespace SharkSharp.Parser
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
 
     using SharkSharp.Lexer;
 
     /// <summary>
     /// Исключение, возникающее при синтаксических ошибках или ошибках выполнения.
     /// </summary>
+    [SuppressMessage(
+        "Roslynator",
+        "RCS1194:Implement exception constructors",
+        Justification = "Внутреннее исключение проекта. Стандартные конструкторы не используются.")]
     public sealed class ParseException : Exception
     {
-        public ParseException()
-        {
-        }
-
-        public ParseException(string message)
-            : base(message)
-        {
-        }
-
-        public ParseException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
-
+        /// <summary>
+        /// Инициализирует новое исключение с сообщением и позицией в исходном коде.
+        /// </summary>
         public ParseException(string message, SourcePosition position)
             : base($"{message} (строка {position.Line}, столбец {position.Column})")
         {
@@ -32,6 +26,6 @@ namespace SharkSharp.Parser
         /// <summary>
         /// Позиция в коде, где произошла ошибка.
         /// </summary>
-        public SourcePosition Position { get; } = new SourcePosition(0, 0);
+        public SourcePosition Position { get; }
     }
 }

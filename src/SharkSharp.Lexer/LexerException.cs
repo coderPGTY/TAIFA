@@ -1,26 +1,20 @@
 namespace SharkSharp.Lexer
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// Исключение, возникающее при ошибках лексического анализа.
     /// </summary>
+    [SuppressMessage(
+        "Roslynator",
+        "RCS1194:Implement exception constructors",
+        Justification = "Внутреннее исключение проекта. Стандартные конструкторы не используются.")]
     public sealed class LexerException : Exception
     {
-        public LexerException()
-        {
-        }
-
-        public LexerException(string message)
-            : base(message)
-        {
-        }
-
-        public LexerException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
-
+        /// <summary>
+        /// Инициализирует новое исключение с сообщением и позицией в исходном коде.
+        /// </summary>
         public LexerException(string message, SourcePosition position)
             : base($"{message} (строка {position.Line}, столбец {position.Column})")
         {
@@ -30,6 +24,6 @@ namespace SharkSharp.Lexer
         /// <summary>
         /// Позиция в коде, где произошла ошибка.
         /// </summary>
-        public SourcePosition Position { get; } = new SourcePosition(0, 0);
+        public SourcePosition Position { get; }
     }
 }

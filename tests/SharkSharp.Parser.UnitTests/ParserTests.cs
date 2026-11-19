@@ -21,6 +21,7 @@ namespace SharkSharp.Parser.UnitTests
             { "func main() { abs(-10); }", 10 },
             { "func main() { min(5, 10); }", 5 },
             { "func main() { max(5, 10); }", 10 },
+            { "func main() { 10 - 3; }", 7 },
             { "func main() { 10 + 7 * (2 * 3 + 4) + 5 + -5; }", 80 },
             { "func main() { 9223372036854775807; }", 9223372036854775807 },
         };

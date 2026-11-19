@@ -278,8 +278,8 @@ namespace SharkSharp.Parser
                     TokenType.Plus => checked(left + right),
                     TokenType.Minus => checked(left - right),
                     TokenType.Star => checked(left * right),
-                    TokenType.Slash => left / right,
-                    TokenType.Percent => left % right,
+                    TokenType.Slash => checked(left / right),
+                    TokenType.Percent => checked(left % right),
                     _ => throw new ParseException(
                         $"Неизвестный оператор '{operatorToken.Lexeme}'",
                         new SourcePosition(operatorToken.Line, operatorToken.Column)),
