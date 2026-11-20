@@ -4,6 +4,8 @@ namespace SharkSharp.Cli
     using System.Collections.Generic;
     using System.IO;
 
+    using SharkSharp.Ast;
+    using SharkSharp.Evaluator;
     using SharkSharp.Lexer;
     using SharkSharp.Parser;
 
@@ -24,7 +26,6 @@ namespace SharkSharp.Cli
             }
 
             string filePath = args[0];
-
             if (!File.Exists(filePath))
             {
                 Console.Error.WriteLine($"Ошибка: файл '{filePath}' не найден.");
@@ -35,12 +36,15 @@ namespace SharkSharp.Cli
             {
                 string sourceCode = File.ReadAllText(filePath);
 
-                SharkSharp.Lexer.Lexer lexer = new SharkSharp.Lexer.Lexer(sourceCode);
+                Lexer lexer = new Lexer(sourceCode);
                 List<Token> tokens = lexer.Tokenize();
 
+                Parser parser = new Parser(tokens);
+                ProgramNode ast = parser.ParseProgram();
+
                 IEnvironment env = new ConsoleEnvironment();
-                SharkSharp.Parser.Parser parser = new SharkSharp.Parser.Parser(tokens, env);
-                parser.ParseProgram();
+                AstEvaluator evaluator = new AstEvaluator(env);
+                evaluator.Evaluate(ast);
 
                 return 0;
             }
@@ -51,12 +55,7 @@ namespace SharkSharp.Cli
             }
             catch (ParseException ex)
             {
-                Console.Error.WriteLine($"Синтаксическая ошибка или ошибка выполнения: {ex.Message}");
-                return 1;
-            }
-            catch (OverflowException)
-            {
-                Console.Error.WriteLine("Ошибка выполнения: результат арифметической операции вне диапазона типа int");
+                Console.Error.WriteLine($"Ошибка выполнения: {ex.Message}");
                 return 1;
             }
             catch (Exception ex)

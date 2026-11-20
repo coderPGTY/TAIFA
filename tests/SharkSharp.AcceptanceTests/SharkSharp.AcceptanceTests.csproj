@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <ItemGroup>
     <None Update="TestData\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
+  
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -25,9 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SharkSharp.Parser\SharkSharp.Parser.csproj" />
     <ProjectReference Include="..\..\src\SharkSharp.Lexer\SharkSharp.Lexer.csproj" />
+    <ProjectReference Include="..\..\src\SharkSharp.Parser\SharkSharp.Parser.csproj" />
+    <ProjectReference Include="..\..\src\SharkSharp.Ast\SharkSharp.Ast.csproj" />
+    <ProjectReference Include="..\..\src\SharkSharp.Evaluator\SharkSharp.Evaluator.csproj" />
     <ProjectReference Include="..\SharkSharp.Parser.UnitTests\SharkSharp.Parser.UnitTests.csproj" />
+
   </ItemGroup>
 
 </Project>

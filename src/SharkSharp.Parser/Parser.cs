@@ -1,47 +1,38 @@
 namespace SharkSharp.Parser
 {
-    using System;
     using System.Collections.Generic;
 
+    using SharkSharp.Ast;
     using SharkSharp.Lexer;
 
     /// <summary>
-    /// Парсер и интерпретатор языка SharkSharp, использующий метод рекурсивного спуска.
-    /// Вычисляет значения выражений непосредственно в процессе разбора.
+    /// Парсер языка SharkSharp, строящий абстрактное синтаксическое дерево (AST).
+    /// Использует метод рекурсивного спуска.
     /// </summary>
     public class Parser
     {
         private readonly List<Token> tokens;
         private int position;
-        private readonly IEnvironment env;
-        private long lastValue;
 
-        public Parser(List<Token> tokens, IEnvironment env)
+        public Parser(List<Token> tokens)
         {
             this.tokens = tokens;
             this.position = 0;
-            this.env = env;
         }
 
         /// <summary>
-        /// Запускает разбор и интерпретацию всей программы.
-        /// Соответствует правилу EBNF: program
+        /// Разбирает всю программу и возвращает корневой узел AST.
         /// </summary>
-        public long ParseProgram()
+        public ProgramNode ParseProgram()
         {
-            this.ParseMainFunction();
+            MainFunctionDeclaration mainFunc = this.ParseMainFunction();
             this.Match(TokenType.Eof);
-            return this.lastValue;
+            return new ProgramNode(mainFunc);
         }
 
-        /// <summary>
-        /// Разбирает функцию main.
-        /// Соответствует правилу EBNF: main_function
-        /// </summary>
-        private void ParseMainFunction()
+        private MainFunctionDeclaration ParseMainFunction()
         {
             this.Match(TokenType.Func);
-
             Token name = this.Match(TokenType.Identifier);
             if (name.Lexeme != "main")
             {
@@ -50,126 +41,103 @@ namespace SharkSharp.Parser
 
             this.Match(TokenType.LeftParen);
             this.Match(TokenType.RightParen);
-            this.ParseBlock();
+            BlockStatement body = this.ParseBlock();
+            return new MainFunctionDeclaration(body);
         }
 
-        private void ParseBlock()
+        private BlockStatement ParseBlock()
         {
             this.Match(TokenType.LeftBrace);
-
+            List<Statement> statements = new List<Statement>();
             while (!this.IsAtEnd() && this.Peek().Type != TokenType.RightBrace)
             {
-                this.ParseStatement();
+                statements.Add(this.ParseStatement());
             }
 
             this.Match(TokenType.RightBrace);
+            return new BlockStatement(statements);
         }
 
-        private void ParseStatement()
+        private Statement ParseStatement()
         {
             if (this.Peek().Type == TokenType.Identifier && this.Peek().Lexeme == "print")
             {
-                this.ParsePrintCall();
-            }
-            else
-            {
-                this.lastValue = this.ParseExpression();
+                return this.ParsePrintCall();
             }
 
+            Expression expr = this.ParseExpression();
             this.Match(TokenType.Semicolon);
+            return new ExpressionStatement(expr);
         }
 
-        private void ParsePrintCall()
+        private PrintStatement ParsePrintCall()
         {
             this.Match(TokenType.Identifier);
             this.Match(TokenType.LeftParen);
-
-            long value = this.ParseExpression();
-
+            Expression expr = this.ParseExpression();
             this.Match(TokenType.RightParen);
-
-            this.env.WriteLine(value);
-            this.lastValue = value;
+            this.Match(TokenType.Semicolon);
+            return new PrintStatement(expr);
         }
 
-        private long ParseExpression()
+        private Expression ParseExpression()
         {
             return this.ParseAdditiveExpression();
         }
 
-        private long ParseAdditiveExpression()
+        private Expression ParseAdditiveExpression()
         {
-            long left = this.ParseMultiplicativeExpression();
-
+            Expression left = this.ParseMultiplicativeExpression();
             while (this.Peek().Type == TokenType.Plus || this.Peek().Type == TokenType.Minus)
             {
                 Token op = this.Advance();
-                long right = this.ParseMultiplicativeExpression();
-                left = CheckedArithmetic(left, right, op.Type, op);
+                Expression right = this.ParseMultiplicativeExpression();
+                left = new BinaryExpression(left, op.Type, right);
             }
 
             return left;
         }
 
-        private long ParseMultiplicativeExpression()
+        private Expression ParseMultiplicativeExpression()
         {
-            long left = this.ParseUnaryExpression();
-
+            Expression left = this.ParseUnaryExpression();
             while (this.Peek().Type == TokenType.Star || this.Peek().Type == TokenType.Slash || this.Peek().Type == TokenType.Percent)
             {
                 Token op = this.Advance();
-                long right = this.ParseUnaryExpression();
-
-                if ((op.Type == TokenType.Slash || op.Type == TokenType.Percent) && right == 0)
-                {
-                    throw new ParseException(
-                        op.Type == TokenType.Slash ? "Деление на ноль" : "Остаток от деления на ноль",
-                        new SourcePosition(op.Line, op.Column));
-                }
-
-                left = CheckedArithmetic(left, right, op.Type, op);
+                Expression right = this.ParseUnaryExpression();
+                left = new BinaryExpression(left, op.Type, right);
             }
 
             return left;
         }
 
-        private long ParseUnaryExpression()
+        private Expression ParseUnaryExpression()
         {
             if (this.Peek().Type == TokenType.Minus)
             {
                 Token op = this.Advance();
-                long value = this.ParseUnaryExpression();
-                try
-                {
-                    return checked(-value);
-                }
-                catch (OverflowException)
-                {
-                    throw new ParseException(
-                        "Результат арифметической операции вне диапазона типа int",
-                        new SourcePosition(op.Line, op.Column));
-                }
+                Expression operand = this.ParseUnaryExpression();
+                return new UnaryExpression(op.Type, operand);
             }
 
             return this.ParsePrimaryExpression();
         }
 
-        private long ParsePrimaryExpression()
+        private Expression ParsePrimaryExpression()
         {
             Token current = this.Peek();
-
             if (current.Type == TokenType.IntegerLiteral)
             {
                 this.Advance();
-                return long.Parse(current.Lexeme);
+                return new IntegerLiteralExpression(long.Parse(current.Lexeme));
             }
 
             if (current.Type == TokenType.LeftParen)
             {
                 this.Advance();
-                long value = this.ParseExpression();
+                Expression expr = this.ParseExpression();
                 this.Match(TokenType.RightParen);
-                return value;
+                return expr;
             }
 
             if (current.Type == TokenType.Identifier)
@@ -180,35 +148,24 @@ namespace SharkSharp.Parser
             throw new ParseException($"Ожидалось число, скобка или функция, но встречено '{current.Lexeme}'", new SourcePosition(current.Line, current.Column));
         }
 
-        /// <summary>
-        /// Разбирает вызов функции.
-        /// Соответствует правилу EBNF: function_call
-        /// </summary>
-        private long ParseFunctionCall()
+        private FunctionCallExpression ParseFunctionCall()
         {
             Token name = this.Advance();
             this.Match(TokenType.LeftParen);
-
-            List<long> arguments = new List<long>();
+            List<Expression> arguments = new List<Expression>();
             if (this.Peek().Type != TokenType.RightParen)
             {
                 arguments = this.ParseArgumentList();
             }
 
             this.Match(TokenType.RightParen);
-
-            return this.EvaluateBuiltinFunction(name.Lexeme, arguments, name);
+            return new FunctionCallExpression(name.Lexeme, arguments);
         }
 
-        /// <summary>
-        /// Разбирает список аргументов функции.
-        /// Соответствует правилу EBNF: argument_list
-        /// </summary>
-        private List<long> ParseArgumentList()
+        private List<Expression> ParseArgumentList()
         {
-            List<long> arguments = new List<long>();
+            List<Expression> arguments = new List<Expression>();
             arguments.Add(this.ParseExpression());
-
             while (this.Peek().Type == TokenType.Comma)
             {
                 this.Advance();
@@ -216,81 +173,6 @@ namespace SharkSharp.Parser
             }
 
             return arguments;
-        }
-
-        private long EvaluateBuiltinFunction(string functionName, List<long> arguments, Token token)
-        {
-            switch (functionName)
-            {
-                case "readInt":
-                    if (arguments.Count != 0)
-                    {
-                        throw new ParseException("Функция readInt не принимает аргументов", new SourcePosition(token.Line, token.Column));
-                    }
-
-                    string input = this.env.ReadLine() ?? string.Empty;
-                    if (!long.TryParse(input, out long parsedValue))
-                    {
-                        throw new ParseException("Ошибка ввода: ожидалось целое число", new SourcePosition(token.Line, token.Column));
-                    }
-
-                    return parsedValue;
-
-                case "abs":
-                    if (arguments.Count != 1)
-                    {
-                        throw new ParseException("Функция abs принимает ровно 1 аргумент", new SourcePosition(token.Line, token.Column));
-                    }
-
-                    return Math.Abs(arguments[0]);
-
-                case "min":
-                    if (arguments.Count != 2)
-                    {
-                        throw new ParseException("Функция min принимает ровно 2 аргумента", new SourcePosition(token.Line, token.Column));
-                    }
-
-                    return Math.Min(arguments[0], arguments[1]);
-
-                case "max":
-                    if (arguments.Count != 2)
-                    {
-                        throw new ParseException("Функция max принимает ровно 2 аргумента", new SourcePosition(token.Line, token.Column));
-                    }
-
-                    return Math.Max(arguments[0], arguments[1]);
-
-                default:
-                    throw new ParseException($"Неизвестная функция '{functionName}'", new SourcePosition(token.Line, token.Column));
-            }
-        }
-
-        /// <summary>
-        /// Выполняет арифметическую операцию с контролем переполнения long.
-        /// При переполнении превращает OverflowException в ParseException на русском.
-        /// </summary>
-        private static long CheckedArithmetic(long left, long right, TokenType operatorType, Token operatorToken)
-        {
-            try
-            {
-                return operatorType switch
-                {
-                    TokenType.Plus => checked(left + right),
-                    TokenType.Minus => checked(left - right),
-                    TokenType.Star => checked(left * right),
-                    TokenType.Slash => checked(left / right),
-                    TokenType.Percent => checked(left % right),
-                    _ => throw new ParseException(
-                        $"Неизвестный оператор '{operatorToken.Lexeme}'",
-                        new SourcePosition(operatorToken.Line, operatorToken.Column)),
-                };
-            }
-            catch (OverflowException)
-            {
-                throw new ParseException(
-                    "Результат арифметической операции вне диапазона типа int",
-                    new SourcePosition(operatorToken.Line, operatorToken.Column));
-            }
         }
 
         private Token Peek()

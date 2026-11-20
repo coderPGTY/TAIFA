@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 
 using SharkSharp.Lexer;
+
 using Xunit;
 
 namespace SharkSharp.UnitTests;

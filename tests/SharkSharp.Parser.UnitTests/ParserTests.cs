@@ -3,59 +3,76 @@ namespace SharkSharp.Parser.UnitTests
     using System;
     using System.Collections.Generic;
 
+    using SharkSharp.Ast;
     using SharkSharp.Lexer;
-    using SharkSharp.Parser;
     using Xunit;
 
     public class ParserTests
     {
-        public static TheoryData<string, long> ValidProgramData => new TheoryData<string, long>
+        public static TheoryData<string, Type> ValidProgramData => new TheoryData<string, Type>
         {
-            { "func main() { 42; }", 42 },
-            { "func main() { 10 + 2 * 3; }", 16 },
-            { "func main() { -5; }", -5 },
-            { "func main() { 10 + -5; }", 5 },
-            { "func main() { (2 + 3) * 4; }", 20 },
-            { "func main() { 7 / 2; }", 3 },
-            { "func main() { -7 % 2; }", -1 },
-            { "func main() { abs(-10); }", 10 },
-            { "func main() { min(5, 10); }", 5 },
-            { "func main() { max(5, 10); }", 10 },
-            { "func main() { 10 - 3; }", 7 },
-            { "func main() { 10 + 7 * (2 * 3 + 4) + 5 + -5; }", 80 },
-            { "func main() { 9223372036854775807; }", 9223372036854775807 },
+            { "func main() { 42; }", typeof(IntegerLiteralExpression) },
+            { "func main() { 10 + 2 * 3; }", typeof(BinaryExpression) },
+            { "func main() { -5; }", typeof(UnaryExpression) },
+            { "func main() { 10 - 3; }", typeof(BinaryExpression) },
+            { "func main() { (2 + 3) * 4; }", typeof(BinaryExpression) },
+            { "func main() { 7 / 2; }", typeof(BinaryExpression) },
+            { "func main() { -7 % 2; }", typeof(BinaryExpression) },
+            { "func main() { abs(-10); }", typeof(FunctionCallExpression) },
+            { "func main() { min(5, 10); }", typeof(FunctionCallExpression) },
+            { "func main() { max(5, 10); }", typeof(FunctionCallExpression) },
+            { "func main() { 10 + 7 * (2 * 3 + 4) + 5 + -5; }", typeof(BinaryExpression) },
+            { "func main() { 9223372036854775807; }", typeof(IntegerLiteralExpression) },
         };
 
         public static TheoryData<string, string> ErrorProgramData => new TheoryData<string, string>
         {
             { "func main() { 42 }", "Ожидался токен Semicolon" },
-            { "func main() { 5 / 0; }", "Деление на ноль" },
-            { "func main() { unknown(); }", "Неизвестная функция" },
             { "func test() { }", "Точкой входа должна быть функция 'main'" },
-            { "func main() { 5 + print(1); }", "Неизвестная функция 'print'" },
-            { "func main() { 9223372036854775807 + 1; }", "вне диапазона" },
+            { "func main() { ( }", "Ожидалось число, скобка или функция" },
         };
 
         [Theory]
         [MemberData(nameof(ValidProgramData))]
-        public void ParseProgram_ValidExpressions_EvaluatesCorrectly(string source, long expectedLastValue)
+        public void ParseProgram_ValidExpressions_BuildsCorrectAst(string source, Type expectedExpressionType)
         {
-            SharkSharp.Lexer.Lexer lexer = new SharkSharp.Lexer.Lexer(source);
+            Lexer lexer = new Lexer(source);
             List<Token> tokens = lexer.Tokenize();
-            SharkSharp.Parser.Parser parser = new SharkSharp.Parser.Parser(tokens, new FakeEnvironment(new List<string>()));
+            Parser parser = new Parser(tokens);
 
-            long actualLastValue = parser.ParseProgram();
+            ProgramNode ast = parser.ParseProgram();
 
-            Assert.Equal(expectedLastValue, actualLastValue);
+            Assert.NotNull(ast);
+            Assert.IsType<MainFunctionDeclaration>(ast.MainFunction);
+            BlockStatement block = ast.MainFunction.Body;
+            Assert.Single(block.Statements);
+
+            Statement statement = block.Statements[0];
+            ExpressionStatement exprStmt = Assert.IsType<ExpressionStatement>(statement);
+            Assert.IsType(expectedExpressionType, exprStmt.Expression);
+        }
+
+        [Fact]
+        public void ParseProgram_PrintStatement_BuildsPrintNode()
+        {
+            string source = "func main() { print(42); }";
+            Lexer lexer = new Lexer(source);
+            List<Token> tokens = lexer.Tokenize();
+            Parser parser = new Parser(tokens);
+
+            ProgramNode ast = parser.ParseProgram();
+
+            Statement statement = ast.MainFunction.Body.Statements[0];
+            Assert.IsType<PrintStatement>(statement);
         }
 
         [Theory]
         [MemberData(nameof(ErrorProgramData))]
         public void ParseProgram_InvalidInput_ThrowsParseException(string source, string expectedMessagePart)
         {
-            SharkSharp.Lexer.Lexer lexer = new SharkSharp.Lexer.Lexer(source);
+            Lexer lexer = new Lexer(source);
             List<Token> tokens = lexer.Tokenize();
-            SharkSharp.Parser.Parser parser = new SharkSharp.Parser.Parser(tokens, new FakeEnvironment(new List<string>()));
+            Parser parser = new Parser(tokens);
 
             ParseException exception = Assert.Throws<ParseException>(() => parser.ParseProgram());
             Assert.Contains(expectedMessagePart, exception.Message);

@@ -3,6 +3,7 @@ namespace SharkSharp.Parser.UnitTests
     using System.Collections.Generic;
 
     using SharkSharp.Parser;
+
     using Xunit;
 
     public class EnvironmentTests

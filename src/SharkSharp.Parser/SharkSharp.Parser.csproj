@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SharkSharp.Lexer\SharkSharp.Lexer.csproj" />
+    <ProjectReference Include="..\SharkSharp.Ast\SharkSharp.Ast.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -9,5 +10,5 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
+  
 </Project>

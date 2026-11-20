@@ -19,8 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SharkSharp.Parser\SharkSharp.Parser.csproj" />
     <ProjectReference Include="..\..\src\SharkSharp.Lexer\SharkSharp.Lexer.csproj" />
+    <ProjectReference Include="..\..\src\SharkSharp.Parser\SharkSharp.Parser.csproj" />
+    <ProjectReference Include="..\..\src\SharkSharp.Ast\SharkSharp.Ast.csproj" />
+    <ProjectReference Include="..\..\src\SharkSharp.Evaluator\SharkSharp.Evaluator.csproj" />
   </ItemGroup>
-
+  
 </Project>

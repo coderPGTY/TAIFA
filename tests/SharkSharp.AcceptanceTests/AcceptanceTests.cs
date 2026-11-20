@@ -5,8 +5,11 @@ namespace SharkSharp.AcceptanceTests
     using System.IO;
     using System.Linq;
 
+    using SharkSharp.Ast;
+    using SharkSharp.Evaluator;
     using SharkSharp.Lexer;
     using SharkSharp.Parser;
+
     using Xunit;
 
     public class AcceptanceTests
@@ -47,11 +50,15 @@ namespace SharkSharp.AcceptanceTests
             }
 
             FakeEnvironment env = new FakeEnvironment(inputs);
-            SharkSharp.Lexer.Lexer lexer = new SharkSharp.Lexer.Lexer(sourceCode);
-            List<Token> tokens = lexer.Tokenize();
-            SharkSharp.Parser.Parser parser = new SharkSharp.Parser.Parser(tokens, env);
 
-            parser.ParseProgram();
+            Lexer lexer = new Lexer(sourceCode);
+            List<Token> tokens = lexer.Tokenize();
+
+            Parser parser = new Parser(tokens);
+            ProgramNode ast = parser.ParseProgram();
+
+            AstEvaluator evaluator = new AstEvaluator(env);
+            evaluator.Evaluate(ast);
 
             string actualOutput = string.Join(Environment.NewLine, env.Outputs);
             Assert.Equal(expectedOutput, actualOutput);
